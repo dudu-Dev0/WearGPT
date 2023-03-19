@@ -14,6 +14,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialCardView>(R.id.new_competition_card).setOnClickListener {
             StartActivity<CompetitionActivity> {  }
         }
+        findViewById<MaterialCardView>(R.id.history_card).setOnClickListener {
+            StartActivity<HistoryActivity> {  }
+        }
         findViewById<MaterialCardView>(R.id.settings_card).setOnClickListener {
             StartActivity<SettingsActivity> {  }
         }

@@ -1,6 +1,7 @@
 package com.dudu.weargpt.ui
 
 import android.graphics.drawable.Drawable
+import android.icu.text.SimpleDateFormat
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -12,6 +13,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestBuilder
 import com.bumptech.glide.request.target.Target
 import com.dudu.weargpt.R
+import com.dudu.weargpt.bean.Conversation
 import com.dudu.weargpt.utils.GPTApplication.Companion.context
 import com.dudu.weargpt.utils.MyGrammarLocator
 import com.dudu.weargpt.utils.OpenAiInterceptor
@@ -33,6 +35,9 @@ import io.noties.prism4j.Prism4j
 import io.noties.prism4j.annotations.PrismBundle
 import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
@@ -44,46 +49,77 @@ class AnswerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_answer)
 
-        val question = intent.getStringExtra("question")
-        Log.e(question, question!!)
-        findViewById<TextView>(R.id.question_tv).text = question
+        var answer = ""
+        var question = intent.getStringExtra("question")
 
-        key = getSharedPreferences("settings", MODE_PRIVATE).getString("api_key","")!!
+        if (!intent.getBooleanExtra("isHistory",false)){
+            Log.e(question, question!!)
+            findViewById<TextView>(R.id.question_tv).text = question
 
-        thread{
-            val mapper = myObjectMapper()
-            val client: OkHttpClient = myClient(key)!!
-                .newBuilder()
-                .build();
-            val retrofit = defaultRetrofit(client, mapper)
-            val api = retrofit.create(OpenAiApi::class.java)
-            val service = OpenAiService(api)
+            key = getSharedPreferences("settings", MODE_PRIVATE).getString("api_key","")!!
 
-            val completionRequest = ChatCompletionRequest.builder()
-                .messages(mutableListOf(ChatMessage("user",question)))
-                .model("gpt-3.5-turbo")
-                .build()
-            val answer = service.createChatCompletion(completionRequest).choices[0].message.content
-            runOnUiThread{
-                val prism4j = Prism4j(MyGrammarLocator())
-                val markwon: Markwon = Markwon.builder(context) // automatically create Glide instance
-                    .usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
-                    .usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
-                    .usePlugin(SyntaxHighlightPlugin.create(prism4j,Prism4jThemeDarkula.create(0)))
-                    .usePlugin(GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
-                        override fun load(@NonNull drawable: AsyncDrawable): RequestBuilder<Drawable> {
-                            return Glide.with(context).load(drawable.getDestination())
-                        }
+            thread{
+                val mapper = myObjectMapper()
+                val client: OkHttpClient = myClient(key)!!
+                    .newBuilder()
+                    .build();
+                val retrofit = defaultRetrofit(client, mapper)
+                val api = retrofit.create(OpenAiApi::class.java)
+                val service = OpenAiService(api)
 
-                        override fun cancel(target: Target<*>) {
-                            Glide.with(context).clear(target)
-                        }
-                    }))
+                val completionRequest = ChatCompletionRequest.builder()
+                    .messages(mutableListOf(ChatMessage("user",question)))
+                    .model("gpt-3.5-turbo")
                     .build()
-                markwon.setMarkdown(findViewById<TextView>(R.id.answer_tv),answer)
-                findViewById<FrameLayout>(R.id.loading_frame).visibility = View.GONE
+                answer = service.createChatCompletion(completionRequest).choices[0].message.content
+                runOnUiThread{
+                    val prism4j = Prism4j(MyGrammarLocator())
+                    val markwon: Markwon = Markwon.builder(context) // automatically create Glide instance
+                        .usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
+                        .usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
+                        .usePlugin(SyntaxHighlightPlugin.create(prism4j,Prism4jThemeDarkula.create(0)))
+                        .usePlugin(GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
+                            override fun load(@NonNull drawable: AsyncDrawable): RequestBuilder<Drawable> {
+                                return Glide.with(context).load(drawable.getDestination())
+                            }
+
+                            override fun cancel(target: Target<*>) {
+                                Glide.with(context).clear(target)
+                            }
+                        }))
+                        .build()
+                    markwon.setMarkdown(findViewById(R.id.answer_tv),answer)
+                    val conversation = Conversation()
+                    conversation.answer = answer
+                    conversation.question = question
+                    conversation.time = getNow()
+                    conversation.tick = System.currentTimeMillis();
+                    conversation.save()
+                    findViewById<FrameLayout>(R.id.loading_frame).visibility = View.GONE
+                }
             }
+        }else{
+            answer = intent.getStringExtra("answer")!!
+            findViewById<FrameLayout>(R.id.loading_frame).visibility = View.GONE
+            findViewById<TextView>(R.id.question_tv).text = question
+            val prism4j = Prism4j(MyGrammarLocator())
+            val markwon: Markwon = Markwon.builder(context) // automatically create Glide instance
+                .usePlugin(GlideImagesPlugin.create(context)) // use supplied Glide instance
+                .usePlugin(GlideImagesPlugin.create(Glide.with(context))) // if you need more control
+                .usePlugin(SyntaxHighlightPlugin.create(prism4j,Prism4jThemeDarkula.create(0)))
+                .usePlugin(GlideImagesPlugin.create(object : GlideImagesPlugin.GlideStore {
+                    override fun load(@NonNull drawable: AsyncDrawable): RequestBuilder<Drawable> {
+                        return Glide.with(context).load(drawable.getDestination())
+                    }
+
+                    override fun cancel(target: Target<*>) {
+                        Glide.with(context).clear(target)
+                    }
+                }))
+                .build()
+            markwon.setMarkdown(findViewById(R.id.answer_tv),answer!!)
         }
+
     }
     private fun myClient(token: String?): OkHttpClient? {
         return OkHttpClient.Builder()
@@ -98,6 +134,15 @@ class AnswerActivity : AppCompatActivity() {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
         mapper.propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
         return mapper
+    }
+    private fun getNow(): String {
+        //if (android.os.Build.VERSION.SDK_INT >= 24){
+            //return SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(Date())
+        //}else{
+            var tms = Calendar.getInstance()
+            return tms.get(Calendar.YEAR).toString() + "-" + tms.get(Calendar.MONTH).toString() + "-" + tms.get(Calendar.DAY_OF_MONTH).toString() + " " + tms.get(Calendar.HOUR_OF_DAY).toString() + ":" + tms.get(Calendar.MINUTE).toString() +":" + tms.get(Calendar.SECOND).toString() +"." + tms.get(Calendar.MILLISECOND).toString()
+        //}
+
     }
 
 }
