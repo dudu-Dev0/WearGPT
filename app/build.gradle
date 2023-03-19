@@ -12,7 +12,7 @@ android {
     compileSdk 32
     defaultConfig {
         applicationId "com.dudu.weargpt"
-        minSdk 19
+        minSdk 24
         targetSdk 32
         versionCode 1
         versionName "1.0"
@@ -48,6 +48,7 @@ dependencies {
     implementation project(":service")
     implementation 'com.theokanning.openai-gpt3-java:api:0.11.0'
     implementation 'com.theokanning.openai-gpt3-java:client:0.11.0'
+    implementation 'org.litepal.android:kotlin:3.0.0'
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
