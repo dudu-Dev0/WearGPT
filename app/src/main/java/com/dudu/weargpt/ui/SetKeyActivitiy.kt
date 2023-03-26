@@ -1,13 +1,12 @@
 package com.dudu.weargpt.ui
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.View
 import android.widget.EditText
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.addTextChangedListener
 import com.dudu.weargpt.R
+import com.dudu.weargpt.utils.makeToast
 import com.dudu.weargpt.utils.open
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 
@@ -28,6 +27,7 @@ class SetKeyActivitiy : AppCompatActivity() {
             getSharedPreferences("settings",Context.MODE_PRIVATE).open {
                 putString("api_key",keyText.text.toString())
             }
+            makeToast("设置成功")
             finish()
         }
     }

@@ -13,4 +13,5 @@
     <color name="pale_red">#EF9A9A</color>
     <color name="text_grey">#686868</color>
     <color name="card_bg_grey">#303030</color>
+    <color name="dialog_bg_write">#F2FFFFFF</color>
 </resources>

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import androidx.multidex.MultiDex
+import com.tencent.bugly.crashreport.CrashReport
 import org.litepal.LitePal
 
 class GPTApplication() :Application() {
@@ -16,6 +17,7 @@ class GPTApplication() :Application() {
         super.onCreate()
         context = applicationContext
         LitePal.initialize(context)
+        CrashReport.initCrashReport(context)
     }
 
     override fun attachBaseContext(base: Context?) {

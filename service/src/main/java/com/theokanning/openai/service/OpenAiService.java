@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.theokanning.openai.DeleteResult;
-import com.theokanning.openai.OpenAiApi;
 import com.theokanning.openai.OpenAiError;
 import com.theokanning.openai.OpenAiHttpException;
 import com.theokanning.openai.completion.CompletionRequest;
@@ -27,35 +26,42 @@ import com.theokanning.openai.image.ImageResult;
 import com.theokanning.openai.model.Model;
 import com.theokanning.openai.moderation.ModerationRequest;
 import com.theokanning.openai.moderation.ModerationResult;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
 import io.reactivex.Single;
-import okhttp3.*;
+import okhttp3.ConnectionPool;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.HttpException;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.jackson.JacksonConverterFactory;
-
-import java.io.IOException;
-import java.time.Duration;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 public class OpenAiService {
 
     private static final String BASE_URL = "https://api.openai.com/";
     private static final ObjectMapper errorMapper = defaultObjectMapper();
 
-    private final OpenAiApi api;
+    private final OpenAiAPI api;
 
 
     /**
+     * 对sdk26以下的设备进行了适配
+     * 并做了一些小小的修改使其可以自定义BASE_URL
+     * <p>
      * Creates a new OpenAiService that wraps OpenAiApi
      *
-     * @param token   OpenAi token string "sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-     * @param timeout http read timeout, Duration.ZERO means no timeout
+     * @param token OpenAi token string "sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
      */
-    public OpenAiService(final String token, final Duration timeout) {
-        this(buildApi(token, timeout));
+    public OpenAiService(final String token, final String url, final Long timeout) {
+        this(buildApi(token, url, timeout));
     }
 
     /**
@@ -64,7 +70,7 @@ public class OpenAiService {
      *
      * @param api OpenAiApi instance to use for all methods
      */
-    public OpenAiService(final OpenAiApi api) {
+    public OpenAiService(final OpenAiAPI api) {
         this.api = api;
     }
 
@@ -223,13 +229,12 @@ public class OpenAiService {
         }
     }
 
-    public static OpenAiApi buildApi(String token, Duration timeout) {
+    public static OpenAiAPI buildApi(String token, String url, Long timeout) {
         Objects.requireNonNull(token, "OpenAI token required");
         ObjectMapper mapper = defaultObjectMapper();
         OkHttpClient client = defaultClient(token, timeout);
-        Retrofit retrofit = defaultRetrofit(client, mapper);
-
-        return retrofit.create(OpenAiApi.class);
+        Retrofit retrofit = defaultRetrofit(client, mapper, url);
+        return retrofit.create(OpenAiAPI.class);
     }
 
     public static ObjectMapper defaultObjectMapper() {
@@ -240,11 +245,22 @@ public class OpenAiService {
         return mapper;
     }
 
-    public static OkHttpClient defaultClient(String token, Duration timeout) {
+    public static OkHttpClient defaultClient(String token, Long timeout) {
         return new OkHttpClient.Builder()
                 .addInterceptor(new AuthenticationInterceptor(token))
                 .connectionPool(new ConnectionPool(5, 1, TimeUnit.SECONDS))
-                .readTimeout(120, TimeUnit.SECONDS)
+                .readTimeout(timeout, TimeUnit.SECONDS)
+                .addInterceptor(new HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BASIC))
+                .build();
+    }
+
+
+    public static Retrofit defaultRetrofit(OkHttpClient client, ObjectMapper mapper, String url) {
+        return new Retrofit.Builder()
+                .baseUrl(url)
+                .client(client)
+                .addConverterFactory(JacksonConverterFactory.create(mapper))
+                .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
     }
 

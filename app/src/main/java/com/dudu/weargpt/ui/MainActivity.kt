@@ -1,7 +1,7 @@
 package com.dudu.weargpt.ui
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import com.dudu.weargpt.R
 import com.dudu.weargpt.utils.StartActivity
 import com.google.android.material.card.MaterialCardView
@@ -12,13 +12,16 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         findViewById<MaterialCardView>(R.id.new_competition_card).setOnClickListener {
-            StartActivity<CompetitionActivity> {  }
+            StartActivity<CompetitionActivity> { }
         }
         findViewById<MaterialCardView>(R.id.history_card).setOnClickListener {
-            StartActivity<HistoryActivity> {  }
+            StartActivity<HistoryActivity> { }
         }
         findViewById<MaterialCardView>(R.id.settings_card).setOnClickListener {
-            StartActivity<SettingsActivity> {  }
+            StartActivity<SettingsActivity> { }
+        }
+        findViewById<MaterialCardView>(R.id.about_card).setOnClickListener {
+            StartActivity<AboutActivity> { }
         }
     }
 }
